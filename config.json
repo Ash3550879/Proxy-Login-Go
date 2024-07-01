@@ -1,0 +1,4 @@
+{
+  "threads": 10,
+  "proxy": "proxy.example.com:8080"
+}
