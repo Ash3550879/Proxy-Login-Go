@@ -34,19 +34,19 @@ func main() {
 	go readFile("./input/combos.txt", comboChannel, &wg)
 
 	// Create channels for results
-	validChan := make(chan string, 10)
-	tfaChan := make(chan string, 10)
-	invalidChan := make(chan string, 10)
+	validChannel := make(chan string, 10)
+	mfaChannel := make(chan string, 10)
+	invalidChannel := make(chan string, 10)
 
 	wg.Add(1)
 	// Check credentials using threads and proxies
-	go checkCredentialsWithProxies(comboChannel, proxies, validChan, tfaChan, invalidChan, &wg, config.Threads)
+	go checkCredentialsWithProxies(comboChannel, proxies, validChannel, mfaChannel, invalidChannel, &wg, config.Threads)
 
 	wg.Add(3)
 	// Save results to files
-	go saveFile("./output/valid.txt", validChan, &wg)
-	go saveFile("./output/2fa.txt", tfaChan, &wg)
-	go saveFile("./output/invalid.txt", invalidChan, &wg)
+	go saveFile("./output/valid.txt", validChannel, &wg)
+	go saveFile("./output/2fa.txt", mfaChannel, &wg)
+	go saveFile("./output/invalid.txt", invalidChannel, &wg)
 
 	wg.Wait()
 }
